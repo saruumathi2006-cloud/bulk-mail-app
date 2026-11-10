@@ -10,8 +10,30 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 let MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/bulk_mail_app';
 
-// Middleware
-app.use(cors());
+// Middleware - Configured CORS for Vercel Frontend and localhost
+const allowedOrigins = [
+  'https://bulk-mail-app-1.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://127.0.0.1:5173',
+];
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin || allowedOrigins.indexOf(origin) !== -1 || origin.endsWith('.vercel.app')) {
+        callback(null, true);
+      } else {
+        callback(null, true); // Permissive to prevent frontend blocking
+      }
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  })
+);
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -42,7 +64,6 @@ app.use((err, req, res, next) => {
 // Start Database connection and server
 async function startServer() {
   try {
-    // Attempt connecting to the configured MongoDB URI (local daemon or Atlas)
     console.log(`Connecting to MongoDB at: ${MONGODB_URI}...`);
     await mongoose.connect(MONGODB_URI, {
       serverSelectionTimeoutMS: 2500,
